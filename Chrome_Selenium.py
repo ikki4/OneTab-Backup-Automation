@@ -26,10 +26,8 @@ TEMP_CHROME_USER_DATA = Path(TEMP_DIR, "Default")
 
 def check_need_to_update(filepath, latestData): 
     if os.path.exists(filepath):
-        exisitingFile = open(filepath, 'r', encoding="utf-8")
-
-        diffResult = difflib.Differ().compare(exisitingFile.read(), latestData)
-
+        with open(filepath, 'r', encoding="utf-8") as existingFile:
+            diffResult = difflib.Differ().compare(existingFile.read(), latestData)
         # List Comprehension
         return [x for x in diffResult if x[0] in ('+', '-')]
     else:
@@ -38,15 +36,14 @@ def check_need_to_update(filepath, latestData):
 
 def create_or_update_backup_file(latestData): 
     if check_need_to_update(Path(BACKUP_PATH, "OneTab Backup (latest).txt"), latestData):
-        file = open(Path(BACKUP_PATH, "OneTab Backup (latest).txt"), 'w', encoding="utf-8")
-        file.write(latestData)
-        file.close()
-
+        with open(Path(BACKUP_PATH, "OneTab Backup (latest).txt"), 'w', encoding="utf-8") as file:
+            file.write(latestData)
         print("Backup Created/Updated")
     else:
         print("No new changes")
-        
-        
+    os.utime(Path(BACKUP_PATH, "OneTab Backup (latest).txt")) #updates the file's access and modified times
+
+
 def create_new_backup_file(latestData): #new
     '''Creates a new backup file and returns the ammount of tabs saved'''
     global FILENAME
@@ -54,15 +51,15 @@ def create_new_backup_file(latestData): #new
     if not BACKUP_PATH.is_dir():
         BACKUP_PATH.mkdir() 
     #getting number of tabs and updating FILENAME
-    tabs_ammount = len([line for line in latestData.split('\n') if len(line)>0])
-    FILENAME += f' Tabs_{tabs_ammount}.txt'
+    tabs_amount = len([line for line in latestData.split('\n') if len(line)>0])
+    FILENAME += f' Tabs_{tabs_amount}.txt'
     #saving backup file
     with open(Path(BACKUP_PATH,FILENAME), mode='w', encoding='utf-8') as f:
         f.write(latestData)  
     #ending
     print(f'File "{FILENAME}" saved successfully in the directory "{str(BACKUP_PATH.resolve())}".')
-    print(f'{tabs_ammount} tabs were saved.')
-    return tabs_ammount
+    print(f'{tabs_amount} tabs were saved.')
+    return tabs_amount
 
 
 utils.remove_directory_if_exists(TEMP_DIR)
@@ -80,6 +77,7 @@ driver = webdriver.Chrome('chromedriver.exe', options=chrome_options)
 time.sleep(1)  # Let the user actually see something!
 
 driver.close()
+driver.quit()
 
 #===================== Copy OneTab Data =============================================
 print('Start Copying OneTab Data')
@@ -100,7 +98,7 @@ export_box = driver.find_elements_by_tag_name("textarea")[1]
 text = export_box.get_attribute("value")
 
 create_or_update_backup_file(text)
-create_new_backup_file(text)
+tabs_amount = create_new_backup_file(text)
 utils.remove_oldest_files_in_directory(BACKUP_PATH)
 
 driver.close()
