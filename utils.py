@@ -1,5 +1,6 @@
 import os
 import shutil
+from pathlib import Path
 
 
 def create_directory_if_not_exists(dirPath):
@@ -37,3 +38,17 @@ def copy_all_files_in_directory(directory_path, destination_path, exception_file
             continue
 
         shutil.copy(file_path, destination_path)
+
+        
+def remove_oldest_files_in_directory(directory_path, files_to_keep=30): #new
+    '''Keeps in the folder only the 30 most recent* text files (the number can be changed).
+    *The most recent files are the ones with the latest "last modification" date.'''
+    p=Path(directory_path)
+    total_files = len(sorted(p.glob("*.txt"), key=os.path.getmtime))
+    if  total_files > files_to_keep:
+        diff = total_files - files_to_keep
+        for file in sorted(p.glob("*.txt"), key=os.path.getmtime)[:diff]:
+            try:
+                os.unlink(file)
+            except Exception as e:
+                print('Failed to delete %s. Reason: %s' % (file, e))

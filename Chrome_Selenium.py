@@ -4,24 +4,27 @@ import difflib
 import utils
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
+from pathlib import Path
+from datetime import datetime
 
 EXTENSION_ID = "chphlpgkkbolifaimnlloiipkdnihall"
+FILENAME = f"Onetab Backup {datetime.now().strftime('%Y-%m-%d %Hh%Mm%Ss')}" #backup file name 
 
 USER_PROFILE = os.environ['USERPROFILE']
-LOCAL_DESTINATION_FILE_PATH = os.path.join(
-    USER_PROFILE, "Documents", "OneTab-Backup.txt")
+BACKUP_PATH = Path(r'.\Backups') #path to the desired backup/export folder
+#change the folder path if you want to, but keep the r before the string
+#example: BACKUP_PATH = Path(r'D:\Documents\Onetab Backup')
+#original value: LOCAL_DESTINATION_FILE_PATH = os.path.join(USER_PROFILE, "Documents", "OneTab-Backup.txt")
 
-CHROME_DIR = os.path.join(USER_PROFILE, 'AppData', 'Local', 'Google', 'Chrome')
+CHROME_DIR = Path(USER_PROFILE, 'AppData', 'Local', 'Google', 'Chrome')
+CHROME_USER_DATA_DIR = Path(CHROME_DIR, 'User Data')
+DEFAULT_CHROME_USER_DATA_DIR = Path(CHROME_DIR, "User Data", "Default")
 
-CHROME_USER_DATA_DIR = os.path.join(CHROME_DIR, 'User Data')
-DEFAULT_CHROME_USER_DATA_DIR = os.path.join(
-    CHROME_DIR, "User Data", "Default")
-
-TEMP_DIR = os.path.join(CHROME_DIR, 'temp',)
-TEMP_CHROME_USER_DATA = os.path.join(TEMP_DIR, "Default")
+TEMP_DIR = Path(CHROME_DIR, 'temp',)
+TEMP_CHROME_USER_DATA = Path(TEMP_DIR, "Default")
 
 
-def check_need_to_update(filepath, latestData):
+def check_need_to_update(filepath, latestData): 
     if os.path.exists(filepath):
         exisitingFile = open(filepath, 'r', encoding="utf-8")
 
@@ -33,25 +36,42 @@ def check_need_to_update(filepath, latestData):
         return True
 
 
-def create_or_update_backup_file(latestData):
-    if check_need_to_update(LOCAL_DESTINATION_FILE_PATH, latestData):
-        file = open(LOCAL_DESTINATION_FILE_PATH, 'w', encoding="utf-8")
+def create_or_update_backup_file(latestData): 
+    if check_need_to_update(Path(BACKUP_PATH, "OneTab Backup (latest).txt"), latestData):
+        file = open(Path(BACKUP_PATH, "OneTab Backup (latest).txt"), 'w', encoding="utf-8")
         file.write(latestData)
         file.close()
 
         print("Backup Created/Updated")
     else:
         print("No new changes")
+        
+        
+def create_new_backup_file(latestData): #new
+    '''Creates a new backup file and returns the ammount of tabs saved'''
+    global FILENAME
+    #creating backup folder is it doesn't exist
+    if not BACKUP_PATH.is_dir():
+        BACKUP_PATH.mkdir() 
+    #getting number of tabs and updating FILENAME
+    tabs_ammount = len([line for line in latestData.split('\n') if len(line)>0])
+    FILENAME += f' Tabs_{tabs_ammount}.txt'
+    #saving backup file
+    with open(Path(BACKUP_PATH,FILENAME), mode='w', encoding='utf-8') as f:
+        f.write(latestData)  
+    #ending
+    print(f'File "{FILENAME}" saved successfully in the directory "{str(BACKUP_PATH.resolve())}".')
+    print(f'{tabs_ammount} tabs were saved.')
+    return tabs_ammount
 
 
 utils.remove_directory_if_exists(TEMP_DIR)
 
-TEMP_LOCAL_EXTENSION_SETTINGS_EXTENSION_DIR = os.path.join(
-    TEMP_CHROME_USER_DATA, "Local Extension Settings", EXTENSION_ID)
+TEMP_LOCAL_EXTENSION_SETTINGS_EXTENSION_DIR = Path(TEMP_CHROME_USER_DATA, "Local Extension Settings", 
+                                                   EXTENSION_ID)
 
 chrome_options = ChromeOptions()
-chrome_options.add_argument(
-    "user-data-dir={}".format(TEMP_DIR))
+chrome_options.add_argument("user-data-dir={}".format(TEMP_DIR))
 chrome_options.add_extension('./onetab.crx')
 
 #==================== Generate a default blank profile ==============================
@@ -63,7 +83,7 @@ driver.close()
 
 #===================== Copy OneTab Data =============================================
 print('Start Copying OneTab Data')
-utils.copy_all_files_in_directory(os.path.join(CHROME_USER_DATA_DIR, "Default", "Local Extension Settings",
+utils.copy_all_files_in_directory(Path(CHROME_USER_DATA_DIR, "Default", "Local Extension Settings",
                                   EXTENSION_ID), TEMP_LOCAL_EXTENSION_SETTINGS_EXTENSION_DIR, ["LOCK"])
 print('Complete Copied')
 
@@ -80,6 +100,8 @@ export_box = driver.find_elements_by_tag_name("textarea")[1]
 text = export_box.get_attribute("value")
 
 create_or_update_backup_file(text)
+create_new_backup_file(text)
+utils.remove_oldest_files_in_directory(BACKUP_PATH)
 
 driver.close()
 driver.quit()
