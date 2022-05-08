@@ -6,6 +6,8 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options as ChromeOptions
 from pathlib import Path
 from datetime import datetime
+import webbrowser
+import pyautogui
 
 EXTENSION_ID = "chphlpgkkbolifaimnlloiipkdnihall"
 FILENAME = f"Onetab Backup {datetime.now().strftime('%Y-%m-%d %Hh%Mm%Ss')}" #backup file name 
@@ -72,7 +74,14 @@ chrome_options.add_argument("user-data-dir={}".format(TEMP_DIR))
 chrome_options.add_extension('./onetab.crx')
 
 #==================== Generate a default blank profile ==============================
-driver = webdriver.Chrome('chromedriver.exe', options=chrome_options)
+try:
+    driver = webdriver.Chrome('chromedriver.exe', options=chrome_options)
+except Exception as e:
+    message="An error has occured. If this script used to work fine for you, then most likely Chrome has updated and your current chromedriver.exe is outdated. Please check your Chrome version, download the corresponding chromedriver.exe and replace the old one with the one you've downloaded." 
+    button=pyautogui.confirm(text=message+'\n\nError message:\n\t'+str(e), title='Error - Onetab Backup Automation', buttons=['Download ChromeDriver', 'Quit'])
+    if button=='Download ChromeDriver':
+        webbrowser.open('https://chromedriver.chromium.org/downloads')
+    quit()
 
 time.sleep(1)  # Let the user actually see something!
 
