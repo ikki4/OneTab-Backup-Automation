@@ -1,6 +1,8 @@
 ### Changes from the [original project](https://github.com/busyxiang/OneTab-Backup-Automation):
 
 * Requires Python 3.6+
+* **(new) Requires [pyautogui](https://pyautogui.readthedocs.io/en/latest/)**
+  * Now the script notifies you when Chomedriver needs to be updated.
 * Changed how the backup text file is made. It still updates the file `OneTab Backup (latest).txt` every time the script runs, but now a new backup file `OneTab Backup {date} {number_of_tabs}.txt` will also be created every time the script runs. This way, in case the script malfunctions or in case Chrome/OneTab crashes/updates and loses the current tab data, even if the script runs and `OneTab Backup (latest).txt` loses its data (by replacing its contents with a blank value), you'll have other saved backups to choose from.
   *   If you want to change the backup folder, open `Chrome_Selenium.py` in a text editor or IDE and edit the variable `BACKUP_PATH` (line 14).
   *   Currently the script keeps only the latest 30 backup files (the older ones get replaced by new ones). If you want to change this amount, open `utils.py` in a text editor or IDE and edit the variable `files_to_keep` (line 43).
